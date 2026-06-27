@@ -1,4 +1,5 @@
-import { Banknote, Boxes, CreditCard, LogOut, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
+import { Banknote, Boxes, CreditCard, LogOut, Settings, TrendingUp } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { logoutAction } from '@/lib/auth/actions';
 import { requireOwner } from '@/lib/auth/session';
@@ -77,6 +78,13 @@ export default async function DashboardPage() {
 
             <div className="flex items-center gap-2">
               <ThemeToggle />
+              <Link
+                href="/settings"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+              >
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">Settings</span>
+              </Link>
               <form action={logoutAction}>
                 <button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900">
                   <LogOut className="h-4 w-4" />
