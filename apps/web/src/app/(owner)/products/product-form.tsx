@@ -23,7 +23,13 @@ type ProductFormProps = {
 };
 
 const inputClass =
-  'h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus:ring-sky-950';
+  'h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-sky-400 dark:focus:ring-sky-950';
+
+const selectedChoiceClass =
+  'cursor-pointer rounded-lg border border-sky-400 bg-sky-500 px-4 py-4 text-sm font-black text-white shadow-sm dark:border-sky-300 dark:bg-sky-500 dark:text-white';
+
+const normalChoiceClass =
+  'cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-4 text-sm font-black text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-sky-500 dark:hover:bg-slate-800 dark:hover:text-sky-200';
 
 export function ProductForm({ product }: ProductFormProps) {
   const action = product ? updateProductAction.bind(null, product.id) : createProductAction;
@@ -34,19 +40,13 @@ export function ProductForm({ product }: ProductFormProps) {
 
   return (
     <form action={formAction} className="space-y-5">
-      <div className="border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950">
-        <p className="mb-3 text-sm font-black text-slate-800 dark:text-slate-200">
+      <div className="border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+        <p className="mb-3 text-sm font-black text-slate-900 dark:text-white">
           What are you adding?
         </p>
 
-        <div className="grid grid-cols-2 gap-2">
-          <label
-            className={
-              itemType === 'PRODUCT'
-                ? 'cursor-pointer rounded-lg border border-sky-300 bg-sky-50 px-3 py-3 text-sm font-black text-sky-800 dark:border-sky-900/70 dark:bg-sky-950/40 dark:text-sky-200'
-                : 'cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm font-black text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200'
-            }
-          >
+        <div className="grid grid-cols-2 gap-3">
+          <label className={itemType === 'PRODUCT' ? selectedChoiceClass : normalChoiceClass}>
             <input
               type="radio"
               name="itemType"
@@ -55,16 +55,19 @@ export function ProductForm({ product }: ProductFormProps) {
               onChange={() => setItemType('PRODUCT')}
               className="sr-only"
             />
-            Product / drug
+            <span className="block">Product / drug</span>
+            <span
+              className={
+                itemType === 'PRODUCT'
+                  ? 'mt-1 block text-xs font-bold text-sky-100'
+                  : 'mt-1 block text-xs font-bold text-slate-500 dark:text-slate-400'
+              }
+            >
+              Has stock and expiry date
+            </span>
           </label>
 
-          <label
-            className={
-              itemType === 'SERVICE'
-                ? 'cursor-pointer rounded-lg border border-sky-300 bg-sky-50 px-3 py-3 text-sm font-black text-sky-800 dark:border-sky-900/70 dark:bg-sky-950/40 dark:text-sky-200'
-                : 'cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm font-black text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200'
-            }
-          >
+          <label className={itemType === 'SERVICE' ? selectedChoiceClass : normalChoiceClass}>
             <input
               type="radio"
               name="itemType"
@@ -73,7 +76,16 @@ export function ProductForm({ product }: ProductFormProps) {
               onChange={() => setItemType('SERVICE')}
               className="sr-only"
             />
-            Service
+            <span className="block">Service</span>
+            <span
+              className={
+                itemType === 'SERVICE'
+                  ? 'mt-1 block text-xs font-bold text-sky-100'
+                  : 'mt-1 block text-xs font-bold text-slate-500 dark:text-slate-400'
+              }
+            >
+              No stock needed
+            </span>
           </label>
         </div>
       </div>
@@ -244,7 +256,7 @@ export function ProductForm({ product }: ProductFormProps) {
           defaultValue={product?.notes || ''}
           rows={4}
           placeholder="Optional"
-          className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus:ring-sky-950"
+          className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-sky-400 dark:focus:ring-sky-950"
         />
       </div>
 
