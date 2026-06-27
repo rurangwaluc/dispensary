@@ -1,3 +1,4 @@
+import { relations } from 'drizzle-orm';
 import { pgEnum, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 
 export const userRoleEnum = pgEnum('user_role', ['OWNER']);
@@ -34,6 +35,17 @@ export const businessSettings = pgTable('business_settings', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const usersRelations = relations(users, ({ many }) => ({
+  sessions: many(sessions),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;

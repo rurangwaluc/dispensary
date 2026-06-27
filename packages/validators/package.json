@@ -11,5 +11,9 @@
   },
   "devDependencies": {
     "typescript": "latest"
+  },
+  "exports": {
+    "./*": "./src/*.ts",
+    ".": "./src/index.ts"
   }
 }

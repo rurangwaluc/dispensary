@@ -20,5 +20,9 @@
     "drizzle-kit": "latest",
     "tsx": "latest",
     "typescript": "latest"
+  },
+  "exports": {
+    "./*": "./src/*.ts",
+    ".": "./src/index.ts"
   }
 }

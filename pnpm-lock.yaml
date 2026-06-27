@@ -244,21 +244,42 @@ importers:
 
   apps/web:
     dependencies:
+      '@dispensary/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@dispensary/validators':
+        specifier: workspace:*
+        version: link:../../packages/validators
+      bcryptjs:
+        specifier: latest
+        version: 3.0.3
+      drizzle-orm:
+        specifier: latest
+        version: 0.45.2(postgres@3.4.9)
       lucide-react:
         specifier: ^1.21.0
         version: 1.21.0(react@19.2.4)
+      nanoid:
+        specifier: latest
+        version: 5.1.16
       next:
         specifier: 16.2.9
         version: 16.2.9(@babel/core@7.29.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      postgres:
+        specifier: latest
+        version: 3.4.9
       react:
         specifier: 19.2.4
         version: 19.2.4
       react-dom:
         specifier: 19.2.4
         version: 19.2.4(react@19.2.4)
+      zod:
+        specifier: latest
+        version: 4.4.3
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4
