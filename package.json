@@ -1,0 +1,31 @@
+{
+  "name": "dispensary-manager",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:web": "pnpm --filter web dev",
+    "build": "turbo build",
+    "check": "turbo check",
+    "db:generate": "pnpm --filter @dispensary/db db:generate",
+    "db:migrate": "pnpm --filter @dispensary/db db:migrate",
+    "seed:owner": "pnpm --filter @dispensary/db seed:owner"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "@types/node": "^26.0.1",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.22.4",
+    "turbo": "latest",
+    "typescript": "latest"
+  },
+  "dependencies": {
+    "bcryptjs": "latest",
+    "drizzle-orm": "latest",
+    "nanoid": "latest",
+    "postgres": "latest",
+    "zod": "latest"
+  },
+  "packageManager": "pnpm@11.0.8"
+}
