@@ -8,6 +8,20 @@
       "when": 1782571693075,
       "tag": "0000_useful_nighthawk",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782576537077,
+      "tag": "0001_illegal_mimic",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782577743996,
+      "tag": "0002_complex_zombie",
+      "breakpoints": true
     }
   ]
 }

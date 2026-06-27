@@ -30,7 +30,7 @@ const moduleGroups = [
     ],
   },
   {
-    title: 'Daily work',
+    title: 'Work',
     items: [
       {
         label: 'Sales',
@@ -124,7 +124,7 @@ export function ModuleMenu() {
                 Menu
               </p>
               <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
-                Choose what you want to manage.
+                Choose where you want to go.
               </p>
             </div>
 

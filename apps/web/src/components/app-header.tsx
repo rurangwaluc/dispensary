@@ -6,18 +6,53 @@ import { logoutAction } from '@/lib/auth/actions';
 import { ModuleMenu } from './module-menu';
 import { ThemeToggle } from './theme-toggle';
 
-const pageNames: Record<string, { eyebrow: string; title: string }> = {
-  '/dashboard': { eyebrow: 'Dashboard', title: 'Welcome' },
-  '/settings': { eyebrow: 'Settings', title: 'Business settings' },
-  '/sales': { eyebrow: 'Sales', title: 'Sales' },
-  '/products': { eyebrow: 'Products', title: 'Products and drugs' },
-  '/services': { eyebrow: 'Services', title: 'Services' },
-  '/stock': { eyebrow: 'Stock', title: 'Stock' },
-  '/debts': { eyebrow: 'Debts', title: 'Debts' },
-  '/customers': { eyebrow: 'Customers', title: 'Customers' },
-  '/expenses': { eyebrow: 'Expenses', title: 'Expenses' },
-  '/reports': { eyebrow: 'Reports', title: 'Reports' },
-};
+function getPageName(pathname: string) {
+  if (pathname === '/dashboard') {
+    return { eyebrow: 'Dashboard', title: 'Welcome' };
+  }
+
+  if (pathname === '/settings') {
+    return { eyebrow: 'Settings', title: 'Business settings' };
+  }
+
+  if (pathname === '/products/new') {
+    return { eyebrow: 'Products', title: 'Add product or service' };
+  }
+
+  if (pathname.startsWith('/products/') && pathname.endsWith('/edit')) {
+    return { eyebrow: 'Products', title: 'Edit product or service' };
+  }
+
+  if (pathname === '/products') {
+    return { eyebrow: 'Products', title: 'Products and services' };
+  }
+
+  if (pathname === '/sales') {
+    return { eyebrow: 'Sales', title: 'Sales' };
+  }
+
+  if (pathname === '/stock') {
+    return { eyebrow: 'Stock', title: 'Stock' };
+  }
+
+  if (pathname === '/debts') {
+    return { eyebrow: 'Debts', title: 'Debts' };
+  }
+
+  if (pathname === '/customers') {
+    return { eyebrow: 'Customers', title: 'Customers' };
+  }
+
+  if (pathname === '/expenses') {
+    return { eyebrow: 'Expenses', title: 'Expenses' };
+  }
+
+  if (pathname === '/reports') {
+    return { eyebrow: 'Reports', title: 'Reports' };
+  }
+
+  return { eyebrow: 'Menu', title: 'Owner system' };
+}
 
 type AppHeaderProps = {
   ownerName: string;
@@ -25,7 +60,7 @@ type AppHeaderProps = {
 
 export function AppHeader({ ownerName }: AppHeaderProps) {
   const pathname = usePathname();
-  const page = pageNames[pathname] || pageNames['/dashboard'];
+  const page = getPageName(pathname);
   const title = pathname === '/dashboard' ? `${page.title}, ${ownerName}` : page.title;
 
   return (
