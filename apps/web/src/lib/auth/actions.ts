@@ -2,11 +2,19 @@
 
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
-import { redirect } from 'next/navigation';
-import { db, sessions, users } from '@dispensary/db';
-import { loginSchema } from '@dispensary/validators';
-import { clearSessionCookie, createSessionToken, getSessionExpiry, hashSessionToken, setSessionCookie, SESSION_COOKIE_NAME } from './session';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { db } from '@dispensary/db/client';
+import { sessions, users } from '@dispensary/db/schema';
+import { loginSchema } from '@dispensary/validators/auth';
+import {
+  clearSessionCookie,
+  createSessionToken,
+  getSessionExpiry,
+  hashSessionToken,
+  setSessionCookie,
+  SESSION_COOKIE_NAME,
+} from './session';
 
 export type LoginState = {
   error?: string;

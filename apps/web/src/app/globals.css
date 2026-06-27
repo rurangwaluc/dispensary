@@ -8,27 +8,48 @@
 
 html {
   min-height: 100%;
-  background: #f8fafc;
+  background: #f6f8fb;
 }
 
 body {
   min-height: 100vh;
   margin: 0;
   overflow-x: hidden;
-  background: radial-gradient(circle at top left, rgba(14, 165, 233, 0.14), transparent 34%), #f8fafc;
+  background: #f6f8fb;
   color: #0f172a;
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
 .dark body {
-  background: radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 34%), #020617;
+  background: #050914;
   color: #f8fafc;
 }
 
-button, input {
+button,
+input {
   font: inherit;
 }
 
 ::selection {
-  background: rgba(14, 165, 233, 0.22);
+  background: rgba(14, 165, 233, 0.18);
+}
+
+.auth-shell {
+  background: #f6f8fb;
+}
+
+.dark .auth-shell {
+  background: #050914;
+}
+
+.business-card {
+  border: 1px solid #dbe3ee;
+  background: #ffffff;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+}
+
+.dark .business-card {
+  border-color: #1e293b;
+  background: #0b1220;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22);
 }

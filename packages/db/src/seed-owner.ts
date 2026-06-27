@@ -1,31 +1,48 @@
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
-import { db, users, businessSettings } from './index.js';
+import { businessSettings, users } from './schema.ts';
+import { db, queryClient } from './client.ts';
 
 const ownerEmail = process.env.OWNER_EMAIL || 'owner@dispensary.local';
-const ownerPassword = process.env.OWNER_PASSWORD || 'change-me-now';
+const ownerPassword = process.env.OWNER_PASSWORD || 'Owner@12345';
 const ownerName = process.env.OWNER_NAME || 'Owner';
 const businessName = process.env.BUSINESS_NAME || 'Dispensary Manager';
 
 async function main() {
+  const passwordHash = await bcrypt.hash(ownerPassword, 12);
+
   const existingOwner = await db.query.users.findFirst({
     where: eq(users.email, ownerEmail),
   });
 
   if (existingOwner) {
-    console.log('Owner already exists:', ownerEmail);
-    return;
+    await db
+      .update(users)
+      .set({
+        name: ownerName,
+        passwordHash,
+        role: 'OWNER',
+        status: 'ACTIVE',
+        updatedAt: new Date(),
+      })
+      .where(eq(users.email, ownerEmail));
+
+    console.log('Owner updated successfully.');
+    console.log('Email:', ownerEmail);
+    console.log('Password:', ownerPassword);
+  } else {
+    await db.insert(users).values({
+      name: ownerName,
+      email: ownerEmail,
+      passwordHash,
+      role: 'OWNER',
+      status: 'ACTIVE',
+    });
+
+    console.log('Owner created successfully.');
+    console.log('Email:', ownerEmail);
+    console.log('Password:', ownerPassword);
   }
-
-  const passwordHash = await bcrypt.hash(ownerPassword, 12);
-
-  await db.insert(users).values({
-    name: ownerName,
-    email: ownerEmail,
-    passwordHash,
-    role: 'OWNER',
-    status: 'ACTIVE',
-  });
 
   const existingSettings = await db.query.businessSettings.findFirst();
 
@@ -36,14 +53,13 @@ async function main() {
       currency: 'RWF',
     });
   }
-
-  console.log('Owner created successfully.');
-  console.log('Email:', ownerEmail);
-  console.log('Password:', ownerPassword);
-  console.log('Change this password before real use.');
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await queryClient.end();
+  });

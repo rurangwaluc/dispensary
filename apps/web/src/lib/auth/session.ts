@@ -4,7 +4,8 @@ import { createHash, randomBytes } from 'crypto';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { and, eq, gt } from 'drizzle-orm';
-import { db, sessions } from '@dispensary/db';
+import { db } from '@dispensary/db/client';
+import { sessions } from '@dispensary/db/schema';
 
 export const SESSION_COOKIE_NAME = 'dispensary_session';
 const SESSION_DAYS = 7;
@@ -25,6 +26,7 @@ export function getSessionExpiry() {
 
 export async function setSessionCookie(token: string, expiresAt: Date) {
   const cookieStore = await cookies();
+
   cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -48,6 +50,7 @@ export async function getCurrentOwner() {
   }
 
   const tokenHash = hashSessionToken(token);
+
   const session = await db.query.sessions.findFirst({
     where: and(eq(sessions.tokenHash, tokenHash), gt(sessions.expiresAt, new Date())),
     with: {
