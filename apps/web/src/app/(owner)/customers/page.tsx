@@ -8,8 +8,11 @@ import { ArchiveCustomerButton } from './archive-customer-button';
 type CustomersPageProps = {
   searchParams?: Promise<{
     q?: string;
+    take?: string;
   }>;
 };
+
+const PAGE_SIZE = 10;
 
 function money(value: number) {
   return `RWF ${value.toLocaleString('en-US')}`;
@@ -23,9 +26,22 @@ function niceDate(value: Date | null) {
   return value.toLocaleDateString();
 }
 
+function buildLoadMoreHref(q: string, nextTake: number) {
+  const params = new URLSearchParams();
+
+  if (q) {
+    params.set('q', q);
+  }
+
+  params.set('take', String(nextTake));
+
+  return `/customers?${params.toString()}`;
+}
+
 export default async function CustomersPage({ searchParams }: CustomersPageProps) {
   const params = await searchParams;
   const q = params?.q?.trim() || '';
+  const take = Math.max(PAGE_SIZE, Number(params?.take || PAGE_SIZE));
 
   const customerList = await db
     .select()
@@ -59,6 +75,9 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
       lastSale,
     };
   });
+
+  const visibleRows = customerRows.slice(0, take);
+  const hasMore = customerRows.length > visibleRows.length;
 
   const totalCustomers = customerRows.length;
   const customersWithDebt = customerRows.filter((row) => row.unpaidBalance > 0).length;
@@ -123,7 +142,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
         </form>
       </div>
 
-      {customerRows.length === 0 ? (
+      {visibleRows.length === 0 ? (
         <section className="border border-slate-200 bg-white p-5 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
             <Users className="h-5 w-5" />
@@ -149,7 +168,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {customerRows.map((row) => (
+                {visibleRows.map((row) => (
                   <tr key={row.customer.id} className="transition hover:bg-slate-50 dark:hover:bg-slate-950/70">
                     <td className="px-4 py-5 align-top">
                       <p className="font-black text-slate-900 dark:text-white">{row.customer.name}</p>
@@ -203,7 +222,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
           </div>
 
           <div className="space-y-3 md:hidden">
-            {customerRows.map((row) => (
+            {visibleRows.map((row) => (
               <article
                 key={row.customer.id}
                 className="border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
@@ -269,6 +288,21 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                 </div>
               </article>
             ))}
+          </div>
+
+          <div className="flex flex-col items-center gap-2 border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
+              Showing {visibleRows.length} of {customerRows.length}
+            </p>
+
+            {hasMore ? (
+              <Link
+                href={buildLoadMoreHref(q, take + PAGE_SIZE)}
+                className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-500 dark:hover:bg-slate-800 dark:hover:text-sky-200"
+              >
+                Load more
+              </Link>
+            ) : null}
           </div>
         </>
       )}
