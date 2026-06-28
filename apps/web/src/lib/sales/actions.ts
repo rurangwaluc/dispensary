@@ -1,10 +1,10 @@
 'use server';
 
-import { inArray, sql } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { db } from '@dispensary/db/client';
-import { products, saleItems, sales } from '@dispensary/db/schema';
+import { customers, products, saleItems, sales } from '@dispensary/db/schema';
 import { saleFormSchema } from '@dispensary/validators/sale';
 import { requireOwner } from '@/lib/auth/session';
 
@@ -38,8 +38,10 @@ export async function createSaleAction(
   }
 
   const parsed = saleFormSchema.safeParse({
-    customerName: formData.get('customerName') || undefined,
-    customerPhone: formData.get('customerPhone') || undefined,
+    customerMode: formData.get('customerMode'),
+    customerId: formData.get('customerId') || undefined,
+    newCustomerName: formData.get('newCustomerName') || undefined,
+    newCustomerPhone: formData.get('newCustomerPhone') || undefined,
     paymentMethod: formData.get('paymentMethod'),
     paidAmount: formData.get('paidAmount') || '0',
     notes: formData.get('notes') || undefined,
@@ -49,6 +51,18 @@ export async function createSaleAction(
   if (!parsed.success) {
     return {
       error: parsed.error.issues[0]?.message || 'Check the sale form.',
+    };
+  }
+
+  if (parsed.data.customerMode === 'EXISTING' && !parsed.data.customerId) {
+    return {
+      error: 'Choose an existing customer or use walk-in customer.',
+    };
+  }
+
+  if (parsed.data.customerMode === 'NEW' && !cleanOptional(parsed.data.newCustomerName)) {
+    return {
+      error: 'Enter the new customer name.',
     };
   }
 
@@ -101,11 +115,50 @@ export async function createSaleAction(
 
   try {
     await db.transaction(async (tx) => {
+      let customerId: string | null = null;
+      let customerName: string | null = null;
+      let customerPhone: string | null = null;
+
+      if (parsed.data.customerMode === 'EXISTING' && parsed.data.customerId) {
+        const [customer] = await tx
+          .select()
+          .from(customers)
+          .where(eq(customers.id, parsed.data.customerId))
+          .limit(1);
+
+        if (!customer || customer.status !== 'ACTIVE') {
+          throw new Error('Selected customer was not found.');
+        }
+
+        customerId = customer.id;
+        customerName = customer.name;
+        customerPhone = customer.phone;
+      }
+
+      if (parsed.data.customerMode === 'NEW') {
+        const [customer] = await tx
+          .insert(customers)
+          .values({
+            name: cleanOptional(parsed.data.newCustomerName) || 'Customer',
+            phone: cleanOptional(parsed.data.newCustomerPhone),
+          })
+          .returning({
+            id: customers.id,
+            name: customers.name,
+            phone: customers.phone,
+          });
+
+        customerId = customer.id;
+        customerName = customer.name;
+        customerPhone = customer.phone;
+      }
+
       const [sale] = await tx
         .insert(sales)
         .values({
-          customerName: cleanOptional(parsed.data.customerName),
-          customerPhone: cleanOptional(parsed.data.customerPhone),
+          customerId,
+          customerName,
+          customerPhone,
           paymentMethod: parsed.data.paymentMethod,
           totalAmount: toMoney(totalAmount),
           paidAmount: toMoney(paidAmount),
@@ -134,7 +187,7 @@ export async function createSaleAction(
               quantity: sql`${products.quantity} - ${line.quantity}`,
               updatedAt: new Date(),
             })
-            .where(sql`${products.id} = ${line.item.id}`);
+            .where(eq(products.id, line.item.id));
         }
       }
     });
@@ -145,6 +198,7 @@ export async function createSaleAction(
   }
 
   revalidatePath('/sales');
+  revalidatePath('/customers');
   revalidatePath('/products');
   revalidatePath('/dashboard');
 

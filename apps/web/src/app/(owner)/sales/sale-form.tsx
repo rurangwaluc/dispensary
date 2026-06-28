@@ -14,14 +14,23 @@ type SellableItem = {
   unit: string;
 };
 
+type CustomerOption = {
+  id: string;
+  name: string;
+  phone: string | null;
+};
+
 type SaleRow = {
   productId: string;
   quantity: number;
   searchText: string;
 };
 
+type CustomerMode = 'WALK_IN' | 'EXISTING' | 'NEW';
+
 type SaleFormProps = {
   items: SellableItem[];
+  customers: CustomerOption[];
 };
 
 function money(value: number) {
@@ -36,13 +45,26 @@ function itemLabel(item: SellableItem) {
   return `${item.name} · ${item.quantity} ${item.unit} · RWF ${Number(item.sellingPrice).toLocaleString('en-US')}`;
 }
 
+function customerLabel(customer: CustomerOption) {
+  return customer.phone ? `${customer.name} · ${customer.phone}` : customer.name;
+}
+
 function findItem(items: SellableItem[], productId: string) {
   return items.find((item) => item.id === productId);
 }
 
-export function SaleForm({ items }: SaleFormProps) {
+function findCustomer(customers: CustomerOption[], customerId: string) {
+  return customers.find((customer) => customer.id === customerId);
+}
+
+export function SaleForm({ items, customers }: SaleFormProps) {
   const [state, action, pending] = useActionState(createSaleAction, {});
   const firstItem = items[0];
+
+  const [customerMode, setCustomerMode] = useState<CustomerMode>('WALK_IN');
+  const [customerId, setCustomerId] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
 
   const [openRowIndex, setOpenRowIndex] = useState<number | null>(null);
   const [rows, setRows] = useState<SaleRow[]>([
@@ -68,6 +90,18 @@ export function SaleForm({ items }: SaleFormProps) {
 
   const paid = Number(paidAmount || 0);
   const balance = Math.max(total - paid, 0);
+
+  const filteredCustomers = useMemo(() => {
+    const cleanSearch = customerSearch.trim().toLowerCase();
+
+    if (!cleanSearch) {
+      return customers.slice(0, 8);
+    }
+
+    return customers
+      .filter((customer) => `${customer.name} ${customer.phone || ''}`.toLowerCase().includes(cleanSearch))
+      .slice(0, 8);
+  }, [customerSearch, customers]);
 
   function updateRow(index: number, nextRow: SaleRow) {
     setRows((current) => current.map((row, rowIndex) => (rowIndex === index ? nextRow : row)));
@@ -106,6 +140,143 @@ export function SaleForm({ items }: SaleFormProps) {
   return (
     <form action={action} className="space-y-5">
       <input type="hidden" name="itemsJson" value={JSON.stringify(selectedRows)} />
+      <input type="hidden" name="customerMode" value={customerMode} />
+      <input type="hidden" name="customerId" value={customerId} />
+
+      <section className="border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+        <div className="mb-4">
+          <h3 className="text-base font-black text-slate-950 dark:text-white">Customer</h3>
+          <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
+            Use walk-in customer, choose an existing customer, or add a new one.
+          </p>
+        </div>
+
+        <div className="grid gap-2 md:grid-cols-3">
+          {[
+            { value: 'WALK_IN', label: 'Walk-in customer', helper: 'Quick sale' },
+            { value: 'EXISTING', label: 'Existing customer', helper: 'Search saved customer' },
+            { value: 'NEW', label: 'New customer', helper: 'Save with this sale' },
+          ].map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                setCustomerMode(option.value as CustomerMode);
+
+                if (option.value !== 'EXISTING') {
+                  setCustomerId('');
+                  setCustomerSearch('');
+                  setIsCustomerSearchOpen(false);
+                }
+              }}
+              className={
+                customerMode === option.value
+                  ? 'rounded-lg border border-sky-300 bg-sky-500 px-4 py-3 text-left text-sm font-black text-white shadow-sm transition hover:border-sky-200 hover:bg-sky-400 dark:border-sky-300 dark:bg-sky-500 dark:text-white dark:hover:border-sky-200 dark:hover:bg-sky-400'
+                  : 'rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-black text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-sky-500 dark:hover:bg-slate-800 dark:hover:text-sky-200'
+              }
+            >
+              <span className="block">{option.label}</span>
+              <span
+                className={
+                  customerMode === option.value
+                    ? 'mt-1 block text-xs font-bold text-sky-100'
+                    : 'mt-1 block text-xs font-bold text-slate-500 dark:text-slate-400'
+                }
+              >
+                {option.helper}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {customerMode === 'EXISTING' ? (
+          <div className="relative mt-4">
+            <label className="mb-1 block text-xs font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+              Search customer
+            </label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={customerSearch}
+                onFocus={() => setIsCustomerSearchOpen(true)}
+                onChange={(event) => {
+                  setCustomerId('');
+                  setCustomerSearch(event.target.value);
+                  setIsCustomerSearchOpen(true);
+                }}
+                placeholder="Type customer name or phone"
+                className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm font-black text-slate-900 outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500 dark:focus:ring-sky-950"
+              />
+            </div>
+
+            {isCustomerSearchOpen ? (
+              <div className="absolute left-0 right-0 top-[72px] z-30 max-h-64 overflow-y-auto border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-950">
+                {filteredCustomers.length > 0 ? (
+                  filteredCustomers.map((customer) => (
+                    <button
+                      key={customer.id}
+                      type="button"
+                      onClick={() => {
+                        setCustomerId(customer.id);
+                        setCustomerSearch(customerLabel(customer));
+                        setIsCustomerSearchOpen(false);
+                      }}
+                      className="flex w-full items-start justify-between gap-3 border-b border-slate-100 px-3 py-3 text-left transition last:border-b-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900"
+                    >
+                      <span>
+                        <span className="block text-sm font-black text-slate-900 dark:text-white">
+                          {customer.name}
+                        </span>
+                        <span className="mt-1 block text-xs font-bold text-slate-500 dark:text-slate-400">
+                          {customer.phone || 'No phone'}
+                        </span>
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-3 py-4 text-sm font-bold text-slate-500 dark:text-slate-400">
+                    No customer found. Use “New customer”.
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {customerId ? (
+              <p className="mt-2 text-xs font-black text-green-700 dark:text-green-300">
+                Customer selected.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {customerMode === 'NEW' ? (
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label htmlFor="newCustomerName" className="text-sm font-black text-slate-800 dark:text-slate-200">
+                Customer name
+              </label>
+              <input
+                id="newCustomerName"
+                name="newCustomerName"
+                placeholder="Example: Jean Claude"
+                className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500 dark:focus:ring-sky-950"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="newCustomerPhone" className="text-sm font-black text-slate-800 dark:text-slate-200">
+                Customer phone
+              </label>
+              <input
+                id="newCustomerPhone"
+                name="newCustomerPhone"
+                placeholder="Optional"
+                className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500 dark:focus:ring-sky-950"
+              />
+            </div>
+          </div>
+        ) : null}
+      </section>
 
       <section className="border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -249,31 +420,7 @@ export function SaleForm({ items }: SaleFormProps) {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[1fr_360px]">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <label htmlFor="customerName" className="text-sm font-black text-slate-800 dark:text-slate-200">
-              Customer name
-            </label>
-            <input
-              id="customerName"
-              name="customerName"
-              placeholder="Optional"
-              className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500 dark:focus:ring-sky-950"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="customerPhone" className="text-sm font-black text-slate-800 dark:text-slate-200">
-              Customer phone
-            </label>
-            <input
-              id="customerPhone"
-              name="customerPhone"
-              placeholder="Optional"
-              className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500 dark:focus:ring-sky-950"
-            />
-          </div>
-
+        <div className="grid gap-4">
           <div className="space-y-2">
             <label htmlFor="paymentMethod" className="text-sm font-black text-slate-800 dark:text-slate-200">
               Payment method
@@ -304,7 +451,7 @@ export function SaleForm({ items }: SaleFormProps) {
             />
           </div>
 
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-2">
             <label htmlFor="notes" className="text-sm font-black text-slate-800 dark:text-slate-200">
               Notes
             </label>

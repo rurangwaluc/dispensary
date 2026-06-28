@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import { eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { ArrowLeft } from 'lucide-react';
 import { db } from '@dispensary/db/client';
-import { products } from '@dispensary/db/schema';
+import { customers, products } from '@dispensary/db/schema';
 import { SaleForm } from '../sale-form';
 
 export default async function NewSalePage() {
@@ -16,7 +16,18 @@ export default async function NewSalePage() {
       unit: products.unit,
     })
     .from(products)
-    .where(eq(products.status, 'ACTIVE'));
+    .where(eq(products.status, 'ACTIVE'))
+    .orderBy(asc(products.name));
+
+  const customerList = await db
+    .select({
+      id: customers.id,
+      name: customers.name,
+      phone: customers.phone,
+    })
+    .from(customers)
+    .where(eq(customers.status, 'ACTIVE'))
+    .orderBy(asc(customers.name));
 
   return (
     <section className="border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
@@ -44,7 +55,7 @@ export default async function NewSalePage() {
           Add at least one product or service before making a sale.
         </div>
       ) : (
-        <SaleForm items={items} />
+        <SaleForm items={items} customers={customerList} />
       )}
     </section>
   );

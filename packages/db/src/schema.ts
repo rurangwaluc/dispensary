@@ -16,6 +16,7 @@ export const userStatusEnum = pgEnum('user_status', ['ACTIVE', 'DISABLED']);
 export const productStatusEnum = pgEnum('product_status', ['ACTIVE', 'ARCHIVED']);
 export const itemTypeEnum = pgEnum('item_type', ['PRODUCT', 'SERVICE']);
 export const paymentMethodEnum = pgEnum('payment_method', ['CASH', 'MOBILE_MONEY', 'BANK', 'CARD']);
+export const customerStatusEnum = pgEnum('customer_status', ['ACTIVE', 'ARCHIVED']);
 
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -51,6 +52,16 @@ export const businessSettings = pgTable('business_settings', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const customers = pgTable('customers', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 160 }).notNull(),
+  phone: varchar('phone', { length: 40 }),
+  notes: text('notes'),
+  status: customerStatusEnum('status').notNull().default('ACTIVE'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const products = pgTable('products', {
   id: uuid('id').defaultRandom().primaryKey(),
   itemType: itemTypeEnum('item_type').notNull().default('PRODUCT'),
@@ -72,6 +83,7 @@ export const products = pgTable('products', {
 
 export const sales = pgTable('sales', {
   id: uuid('id').defaultRandom().primaryKey(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
   customerName: varchar('customer_name', { length: 160 }),
   customerPhone: varchar('customer_phone', { length: 40 }),
   paymentMethod: paymentMethodEnum('payment_method').notNull().default('CASH'),
@@ -111,7 +123,15 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
   }),
 }));
 
-export const salesRelations = relations(sales, ({ many }) => ({
+export const customersRelations = relations(customers, ({ many }) => ({
+  sales: many(sales),
+}));
+
+export const salesRelations = relations(sales, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [sales.customerId],
+    references: [customers.id],
+  }),
   items: many(saleItems),
 }));
 
@@ -134,6 +154,9 @@ export type NewSession = typeof sessions.$inferInsert;
 
 export type BusinessSettings = typeof businessSettings.$inferSelect;
 export type NewBusinessSettings = typeof businessSettings.$inferInsert;
+
+export type Customer = typeof customers.$inferSelect;
+export type NewCustomer = typeof customers.$inferInsert;
 
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;

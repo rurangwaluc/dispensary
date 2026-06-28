@@ -29,6 +29,13 @@
       "when": 1782628048940,
       "tag": "0003_old_raza",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782629727431,
+      "tag": "0004_pale_skullbuster",
+      "breakpoints": true
     }
   ]
 }

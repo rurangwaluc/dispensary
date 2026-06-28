@@ -6,13 +6,15 @@ const moneySchema = z
   .regex(/^[0-9]+(\.[0-9]{1,2})?$/, 'Enter a valid amount.');
 
 export const saleLineItemSchema = z.object({
-  productId: z.string().uuid(),
+  productId: z.string().uuid('Choose an item.'),
   quantity: z.number().int().min(1),
 });
 
 export const saleFormSchema = z.object({
-  customerName: z.string().trim().max(160).optional(),
-  customerPhone: z.string().trim().max(40).optional(),
+  customerMode: z.enum(['WALK_IN', 'EXISTING', 'NEW']),
+  customerId: z.string().uuid().optional(),
+  newCustomerName: z.string().trim().max(160).optional(),
+  newCustomerPhone: z.string().trim().max(40).optional(),
   paymentMethod: z.enum(['CASH', 'MOBILE_MONEY', 'BANK', 'CARD']),
   paidAmount: moneySchema,
   notes: z.string().trim().max(1000).optional(),
