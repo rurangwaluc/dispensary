@@ -57,6 +57,13 @@
       "when": 1782646764018,
       "tag": "0007_fresh_smasher",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1782647686424,
+      "tag": "0008_oval_wallop",
+      "breakpoints": true
     }
   ]
 }

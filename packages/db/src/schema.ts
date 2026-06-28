@@ -153,6 +153,16 @@ export const expenses = pgTable('expenses', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const moneyTransfers = pgTable('money_transfers', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  fromPaymentMethod: paymentMethodEnum('from_payment_method').notNull(),
+  toPaymentMethod: paymentMethodEnum('to_payment_method').notNull(),
+  amount: numeric('amount', { precision: 12, scale: 2 }).notNull().default('0'),
+  notes: text('notes'),
+  movedAt: timestamp('moved_at', { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
 }));
@@ -236,3 +246,6 @@ export type NewStockArrival = typeof stockArrivals.$inferInsert;
 
 export type Expense = typeof expenses.$inferSelect;
 export type NewExpense = typeof expenses.$inferInsert;
+
+export type MoneyTransfer = typeof moneyTransfers.$inferSelect;
+export type NewMoneyTransfer = typeof moneyTransfers.$inferInsert;

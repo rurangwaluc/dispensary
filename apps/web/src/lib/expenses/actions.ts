@@ -6,6 +6,7 @@ import { db } from '@dispensary/db/client';
 import { expenses } from '@dispensary/db/schema';
 import { expenseFormSchema } from '@dispensary/validators/expense';
 import { requireOwner } from '@/lib/auth/session';
+import { getPaymentMethodBalance } from '@/lib/money/balance';
 
 function cleanOptional(value: string | undefined) {
   const cleaned = value?.trim();
@@ -27,6 +28,17 @@ export async function createExpenseAction(formData: FormData) {
   if (!parsed.success) {
     const message = parsed.error.issues[0]?.message || 'Check the expense form.';
     redirect(`/expenses?error=${encodeURIComponent(message)}`);
+  }
+
+  const availableMoney = await getPaymentMethodBalance(parsed.data.paymentMethod);
+  const expenseAmount = Number(parsed.data.amount);
+
+  if (expenseAmount > availableMoney) {
+    redirect(
+      `/expenses?error=${encodeURIComponent(
+        `Not enough money in ${parsed.data.paymentMethod.replace('_', ' ').toLowerCase()}.`,
+      )}`,
+    );
   }
 
   const expenseDate = parsed.data.expenseDate

@@ -159,7 +159,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
                 id="category"
                 name="category"
                 required
-                defaultValue="Other"
+                defaultValue="Utilities"
                 placeholder="Example: Rent"
                 className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-sky-400 dark:focus:ring-sky-950"
               />
