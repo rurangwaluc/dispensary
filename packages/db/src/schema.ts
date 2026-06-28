@@ -112,6 +112,18 @@ export const saleItems = pgTable('sale_items', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const debtPayments = pgTable('debt_payments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  saleId: uuid('sale_id')
+    .notNull()
+    .references(() => sales.id, { onDelete: 'cascade' }),
+  paymentMethod: paymentMethodEnum('payment_method').notNull().default('CASH'),
+  amount: numeric('amount', { precision: 12, scale: 2 }).notNull().default('0'),
+  notes: text('notes'),
+  paidAt: timestamp('paid_at', { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
 }));
@@ -133,6 +145,7 @@ export const salesRelations = relations(sales, ({ one, many }) => ({
     references: [customers.id],
   }),
   items: many(saleItems),
+  debtPayments: many(debtPayments),
 }));
 
 export const saleItemsRelations = relations(saleItems, ({ one }) => ({
@@ -143,6 +156,13 @@ export const saleItemsRelations = relations(saleItems, ({ one }) => ({
   product: one(products, {
     fields: [saleItems.productId],
     references: [products.id],
+  }),
+}));
+
+export const debtPaymentsRelations = relations(debtPayments, ({ one }) => ({
+  sale: one(sales, {
+    fields: [debtPayments.saleId],
+    references: [sales.id],
   }),
 }));
 
@@ -166,3 +186,6 @@ export type NewSale = typeof sales.$inferInsert;
 
 export type SaleItem = typeof saleItems.$inferSelect;
 export type NewSaleItem = typeof saleItems.$inferInsert;
+
+export type DebtPayment = typeof debtPayments.$inferSelect;
+export type NewDebtPayment = typeof debtPayments.$inferInsert;
