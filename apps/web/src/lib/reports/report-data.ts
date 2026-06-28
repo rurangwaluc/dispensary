@@ -9,7 +9,7 @@ import {
   sales,
 } from '@dispensary/db/schema';
 
-export type ReportRange = 'day' | 'month' | 'all';
+export type ReportRange = 'day' | 'week' | 'month';
 
 export function money(value: string | number) {
   return `RWF ${Number(value).toLocaleString('en-US')}`;
@@ -30,12 +30,20 @@ export function getTodayInputDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function cleanReportDate(value: string | undefined) {
+export function cleanReportDate(value: string | undefined | null) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return getTodayInputDate();
   }
 
   return value;
+}
+
+export function cleanReportRange(value: string | undefined | null): ReportRange {
+  if (value === 'week' || value === 'month' || value === 'day') {
+    return value;
+  }
+
+  return 'day';
 }
 
 export function readableDate(value: string) {
@@ -46,14 +54,77 @@ export function readableDate(value: string) {
   });
 }
 
-function isSameDay(value: Date, reportDate: string) {
-  const target = new Date(`${reportDate}T12:00:00`);
+function startOfDay(date: Date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
 
-  return (
-    value.getFullYear() === target.getFullYear() &&
-    value.getMonth() === target.getMonth() &&
-    value.getDate() === target.getDate()
-  );
+function endOfDay(date: Date) {
+  const next = new Date(date);
+  next.setHours(23, 59, 59, 999);
+  return next;
+}
+
+function getWeekStart(date: Date) {
+  const next = startOfDay(date);
+  const day = next.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  next.setDate(next.getDate() + diff);
+  return next;
+}
+
+function getMonthStart(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
+}
+
+function getMonthEnd(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+}
+
+export function getReportPeriod(reportDate: string, range: ReportRange) {
+  const selected = new Date(`${reportDate}T12:00:00`);
+
+  if (range === 'week') {
+    const start = getWeekStart(selected);
+    const end = endOfDay(new Date(start));
+    end.setDate(start.getDate() + 6);
+
+    return {
+      start,
+      end,
+      title: `Weekly report`,
+      label: `${readableDate(start.toISOString().slice(0, 10))} - ${readableDate(
+        end.toISOString().slice(0, 10),
+      )}`,
+    };
+  }
+
+  if (range === 'month') {
+    const start = getMonthStart(selected);
+    const end = getMonthEnd(selected);
+
+    return {
+      start,
+      end,
+      title: `Monthly report`,
+      label: selected.toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric',
+      }),
+    };
+  }
+
+  return {
+    start: startOfDay(selected),
+    end: endOfDay(selected),
+    title: `Daily report`,
+    label: readableDate(reportDate),
+  };
+}
+
+function isInsidePeriod(value: Date, start: Date, end: Date) {
+  return value.getTime() >= start.getTime() && value.getTime() <= end.getTime();
 }
 
 function getExpiryWarning(expiryDate: string | null, warningDays: number) {
@@ -68,8 +139,10 @@ function getExpiryWarning(expiryDate: string | null, warningDays: number) {
   return daysLeft >= 0 && daysLeft <= warningDays;
 }
 
-export async function getDayReport(reportDate: string) {
+export async function getReport(reportDate: string, rangeValue: string | undefined | null) {
   const selectedDate = cleanReportDate(reportDate);
+  const range = cleanReportRange(rangeValue);
+  const period = getReportPeriod(selectedDate, range);
 
   const [settings] = await db.select().from(businessSettings).limit(1);
 
@@ -80,9 +153,17 @@ export async function getDayReport(reportDate: string) {
     db.select().from(products).where(eq(products.status, 'ACTIVE')),
   ]);
 
-  const filteredSales = saleList.filter((sale) => isSameDay(sale.saleDate, selectedDate));
-  const filteredExpenses = expenseList.filter((expense) => isSameDay(expense.expenseDate, selectedDate));
-  const filteredDebtPayments = debtPaymentList.filter((payment) => isSameDay(payment.paidAt, selectedDate));
+  const filteredSales = saleList.filter((sale) =>
+    isInsidePeriod(sale.saleDate, period.start, period.end),
+  );
+
+  const filteredExpenses = expenseList.filter((expense) =>
+    isInsidePeriod(expense.expenseDate, period.start, period.end),
+  );
+
+  const filteredDebtPayments = debtPaymentList.filter((payment) =>
+    isInsidePeriod(payment.paidAt, period.start, period.end),
+  );
 
   const saleIds = filteredSales.map((sale) => sale.id);
   const itemList =
@@ -190,7 +271,8 @@ export async function getDayReport(reportDate: string) {
 
   return {
     selectedDate,
-    readableDate: readableDate(selectedDate),
+    range,
+    period,
     expiryWarningDays,
     summary: {
       salesTotal,

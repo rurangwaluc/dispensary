@@ -6,12 +6,12 @@ import {
   View,
   renderToBuffer,
 } from '@react-pdf/renderer';
-import { cleanReportDate, getDayReport, money } from '@/lib/reports/report-data';
+import { cleanReportDate, cleanReportRange, getReport, money } from '@/lib/reports/report-data';
 
 export const runtime = 'nodejs';
 
 type ReportPdfProps = {
-  report: Awaited<ReturnType<typeof getDayReport>>;
+  report: Awaited<ReturnType<typeof getReport>>;
 };
 
 const styles = StyleSheet.create({
@@ -145,11 +145,7 @@ function SummaryCard({
   );
 }
 
-function MoneyRows({
-  rows,
-}: {
-  rows: { name: string; total: number }[];
-}) {
+function MoneyRows({ rows }: { rows: { name: string; total: number }[] }) {
   return (
     <View>
       {rows.map((row, index) => (
@@ -213,8 +209,8 @@ function ReportPdf({ report }: ReportPdfProps) {
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <Text style={styles.eyebrow}>Dispensary report</Text>
-          <Text style={styles.title}>Daily Business Report</Text>
-          <Text style={styles.subtitle}>Report for {report.readableDate}</Text>
+          <Text style={styles.title}>{report.period.title}</Text>
+          <Text style={styles.subtitle}>{report.period.label}</Text>
         </View>
 
         <View style={styles.grid}>
@@ -240,7 +236,7 @@ function ReportPdf({ report }: ReportPdfProps) {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Expenses by category</Text>
               {report.expenseCategoryRows.length === 0 ? (
-                <Text style={styles.empty}>No expenses on this day.</Text>
+                <Text style={styles.empty}>No expenses in this period.</Text>
               ) : (
                 <MoneyRows
                   rows={report.expenseCategoryRows.map((row) => ({
@@ -259,7 +255,7 @@ function ReportPdf({ report }: ReportPdfProps) {
               <Text style={styles.sectionTitle}>Top products sold</Text>
               <SoldRows
                 rows={report.productRows}
-                empty="No products sold on this day."
+                empty="No products sold in this period."
                 quantityLabel="Quantity sold"
               />
             </View>
@@ -270,7 +266,7 @@ function ReportPdf({ report }: ReportPdfProps) {
               <Text style={styles.sectionTitle}>Top services sold</Text>
               <SoldRows
                 rows={report.serviceRows}
-                empty="No services sold on this day."
+                empty="No services sold in this period."
                 quantityLabel="Times sold"
               />
             </View>
@@ -329,16 +325,18 @@ function ReportPdf({ report }: ReportPdfProps) {
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const selectedDate = cleanReportDate(url.searchParams.get('date') || undefined);
-  const report = await getDayReport(selectedDate);
+  const selectedDate = cleanReportDate(url.searchParams.get('date'));
+  const selectedRange = cleanReportRange(url.searchParams.get('range'));
+  const mode = url.searchParams.get('mode') === 'inline' ? 'inline' : 'attachment';
+  const report = await getReport(selectedDate, selectedRange);
 
   const pdf = await renderToBuffer(<ReportPdf report={report} />);
-  const filename = `dispensary-report-${selectedDate}.pdf`;
+  const filename = `dispensary-${selectedRange}-report-${selectedDate}.pdf`;
 
   return new Response(new Uint8Array(pdf), {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Disposition': `${mode}; filename="${filename}"`,
     },
   });
 }

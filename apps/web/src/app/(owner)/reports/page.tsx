@@ -1,17 +1,31 @@
 import Link from 'next/link';
-import { Download } from 'lucide-react';
-import { cleanReportDate, getDayReport, money } from '@/lib/reports/report-data';
+import { Download, Printer } from 'lucide-react';
+import { cleanReportDate, cleanReportRange, getReport, money } from '@/lib/reports/report-data';
 
 type ReportsPageProps = {
   searchParams?: Promise<{
     date?: string;
+    range?: string;
   }>;
 };
+
+function rangeName(value: string) {
+  if (value === 'week') {
+    return 'Weekly';
+  }
+
+  if (value === 'month') {
+    return 'Monthly';
+  }
+
+  return 'Daily';
+}
 
 export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const params = await searchParams;
   const selectedDate = cleanReportDate(params?.date);
-  const report = await getDayReport(selectedDate);
+  const selectedRange = cleanReportRange(params?.range);
+  const report = await getReport(selectedDate, selectedRange);
 
   const summary = [
     { label: 'Sales', value: money(report.summary.salesTotal), helper: 'Products and services sold' },
@@ -37,12 +51,27 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               Reports
             </h2>
             <p className="mt-2 text-sm font-medium leading-6 text-slate-500 dark:text-slate-400">
-              See what came in, what went out, what sold, and what needs attention.
+              Print or download daily, weekly, and monthly business reports.
             </p>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <div className="flex flex-col gap-2 xl:items-end">
             <form action="/reports" className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <label className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                  Report type
+                </span>
+                <select
+                  name="range"
+                  defaultValue={selectedRange}
+                  className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-black text-slate-950 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus:border-sky-400 dark:focus:ring-sky-950"
+                >
+                  <option value="day">Daily</option>
+                  <option value="week">Weekly</option>
+                  <option value="month">Monthly</option>
+                </select>
+              </label>
+
               <label className="space-y-2">
                 <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                   Select day
@@ -60,18 +89,29 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               </button>
             </form>
 
-            <Link
-              href={`/reports/download?date=${selectedDate}`}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-500 dark:hover:bg-slate-800 dark:hover:text-sky-200"
-            >
-              <Download className="h-4 w-4" />
-              Download PDF
-            </Link>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Link
+                href={`/reports/download?range=${selectedRange}&date=${selectedDate}&mode=inline`}
+                target="_blank"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-500 dark:hover:bg-slate-800 dark:hover:text-sky-200"
+              >
+                <Printer className="h-4 w-4" />
+                Print report
+              </Link>
+
+              <Link
+                href={`/reports/download?range=${selectedRange}&date=${selectedDate}&mode=download`}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-500 dark:hover:bg-slate-800 dark:hover:text-sky-200"
+              >
+                <Download className="h-4 w-4" />
+                Download PDF
+              </Link>
+            </div>
           </div>
         </div>
 
         <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200">
-          Report for {report.readableDate}
+          {rangeName(report.range)} report: {report.period.label}
         </div>
       </div>
 
@@ -123,7 +163,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 
           {report.expenseCategoryRows.length === 0 ? (
             <p className="mt-4 text-sm font-semibold text-slate-500 dark:text-slate-400">
-              No expenses on this day.
+              No expenses in this period.
             </p>
           ) : (
             <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
@@ -144,7 +184,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 
           {report.productRows.length === 0 ? (
             <p className="mt-4 text-sm font-semibold text-slate-500 dark:text-slate-400">
-              No products sold on this day.
+              No products sold in this period.
             </p>
           ) : (
             <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
@@ -168,7 +208,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 
           {report.serviceRows.length === 0 ? (
             <p className="mt-4 text-sm font-semibold text-slate-500 dark:text-slate-400">
-              No services sold on this day.
+              No services sold in this period.
             </p>
           ) : (
             <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
