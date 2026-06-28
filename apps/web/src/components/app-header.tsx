@@ -43,6 +43,10 @@ function getPageName(pathname: string) {
     return { eyebrow: 'Debts', title: 'Debts' };
   }
 
+  if (pathname?.startsWith('/customers/') && pathname !== '/customers') {
+    return { eyebrow: 'Customers', title: 'Customer details' };
+  }
+
   if (pathname === '/customers') {
     return { eyebrow: 'Customers', title: 'Customers' };
   }
