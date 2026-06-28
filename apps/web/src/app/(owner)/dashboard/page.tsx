@@ -1,103 +1,210 @@
-import { Banknote, Boxes, CreditCard, TrendingUp } from 'lucide-react';
+import { CreditCard, Layers3, TrendingUp, WalletCards } from 'lucide-react';
+import { db } from '@dispensary/db/client';
+import { businessSettings, products, sales } from '@dispensary/db/schema';
 
-const summaryCards = [
-  { label: 'Today sales', value: 'RWF 0', helper: 'Recorded today', icon: TrendingUp },
-  { label: 'Money received', value: 'RWF 0', helper: 'Cash and mobile money', icon: Banknote },
-  { label: 'Credit given', value: 'RWF 0', helper: 'Unpaid today', icon: CreditCard },
-  { label: 'Low stock', value: '0 items', helper: 'Needs restocking', icon: Boxes },
-];
+function money(value: string | number) {
+  return `RWF ${Number(value).toLocaleString('en-US')}`;
+}
 
-const attentionItems = [
-  { label: 'Low stock products', value: '0', tone: 'text-sky-700 dark:text-sky-300' },
-  { label: 'Expiring soon', value: '0', tone: 'text-yellow-700 dark:text-yellow-300' },
-  { label: 'Unpaid customers', value: '0', tone: 'text-green-700 dark:text-green-300' },
-  { label: 'Today expenses', value: 'RWF 0', tone: 'text-slate-700 dark:text-slate-300' },
-];
+function isToday(value: Date) {
+  const today = new Date();
 
-export default function DashboardPage() {
   return (
-    <>
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {summaryCards.map((card) => (
-          <article
-            key={card.label}
-            className="border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5"
-          >
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-                  {card.label}
-                </p>
-                <p className="mt-1 hidden text-xs font-semibold text-slate-400 dark:text-slate-500 sm:block">
-                  {card.helper}
-                </p>
+    value.getFullYear() === today.getFullYear() &&
+    value.getMonth() === today.getMonth() &&
+    value.getDate() === today.getDate()
+  );
+}
+
+function getExpiryWarning(expiryDate: string | null, warningDays: number) {
+  if (!expiryDate) {
+    return false;
+  }
+
+  const today = new Date();
+  const expiry = new Date(`${expiryDate}T00:00:00`);
+  const daysLeft = Math.ceil((expiry.getTime() - today.getTime()) / 86_400_000);
+
+  return daysLeft >= 0 && daysLeft <= warningDays;
+}
+
+export default async function DashboardPage() {
+  const [settings] = await db.select().from(businessSettings).limit(1);
+  const saleList = await db.select().from(sales);
+  const productList = await db.select().from(products);
+
+  const expiryWarningDays = Number(settings?.expiryAlertDays || 60);
+
+  const todaySales = saleList.filter((sale) => isToday(sale.saleDate));
+
+  const todaySalesTotal = todaySales.reduce(
+    (sum, sale) => sum + Number(sale.totalAmount),
+    0,
+  );
+
+  const todayMoneyReceived = todaySales.reduce(
+    (sum, sale) => sum + Number(sale.paidAmount),
+    0,
+  );
+
+  const todayCreditGiven = todaySales.reduce(
+    (sum, sale) => sum + Number(sale.balanceAmount),
+    0,
+  );
+
+  const activeProducts = productList.filter(
+    (product) => product.status === 'ACTIVE' && product.itemType === 'PRODUCT',
+  );
+
+  const lowStockProducts = activeProducts.filter(
+    (product) => product.quantity <= product.minQuantity,
+  );
+
+  const expiringSoonProducts = activeProducts.filter((product) =>
+    getExpiryWarning(product.expiryDate, expiryWarningDays),
+  );
+
+  const unpaidCustomers = saleList.filter((sale) => Number(sale.balanceAmount) > 0);
+
+  const cards = [
+    {
+      label: 'Today sales',
+      helper: 'Recorded today',
+      value: money(todaySalesTotal),
+      icon: TrendingUp,
+    },
+    {
+      label: 'Money received',
+      helper: 'Cash and mobile money',
+      value: money(todayMoneyReceived),
+      icon: WalletCards,
+    },
+    {
+      label: 'Credit given',
+      helper: 'Unpaid today',
+      value: money(todayCreditGiven),
+      icon: CreditCard,
+    },
+    {
+      label: 'Low stock',
+      helper: 'Needs restocking',
+      value: `${lowStockProducts.length} item${lowStockProducts.length === 1 ? '' : 's'}`,
+      icon: Layers3,
+    },
+  ];
+
+  const attention = [
+    {
+      label: 'Low stock products',
+      value: lowStockProducts.length,
+      className: 'text-sky-300',
+    },
+    {
+      label: 'Expiring soon',
+      value: expiringSoonProducts.length,
+      className: 'text-yellow-300',
+    },
+    {
+      label: 'Unpaid customers',
+      value: unpaidCustomers.length,
+      className: 'text-green-300',
+    },
+    {
+      label: 'Today expenses',
+      value: money(0),
+      className: 'text-slate-300',
+    },
+  ];
+
+  const checks = [
+    { label: 'Owner can sign in', value: 'OK' },
+    { label: 'Dashboard is private', value: 'OK' },
+    { label: 'Owner can sign out', value: 'OK' },
+    { label: 'Works on phone screen', value: 'OK' },
+  ];
+
+  return (
+    <section className="space-y-6">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {cards.map((card) => {
+          const Icon = card.icon;
+
+          return (
+            <article
+              key={card.label}
+              className="border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    {card.label}
+                  </p>
+                  <p className="mt-2 text-sm font-bold text-slate-500 dark:text-slate-500">
+                    {card.helper}
+                  </p>
+                </div>
+
+                <Icon className="h-5 w-5 text-sky-500 dark:text-sky-300" />
               </div>
-              <card.icon className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
-            </div>
-            <p className="text-2xl font-black tracking-tight text-slate-950 dark:text-white sm:text-3xl">
-              {card.value}
-            </p>
-          </article>
-        ))}
+
+              <p className="mt-8 text-3xl font-black tracking-tight text-slate-950 dark:text-white">
+                {card.value}
+              </p>
+            </article>
+          );
+        })}
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <article className="border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
-          <div className="mb-5 flex items-start justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
+      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <article className="border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-black tracking-tight text-slate-950 dark:text-white">
+              <h2 className="text-xl font-black tracking-tight text-slate-950 dark:text-white">
                 Needs attention
               </h2>
-              <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
+              <p className="mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
                 Check these first today.
               </p>
             </div>
-            <span className="rounded-md bg-yellow-100 px-2.5 py-1 text-xs font-black text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-200">
+
+            <span className="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs font-black text-yellow-700 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
               Today
             </span>
           </div>
 
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {attentionItems.map((item) => (
-              <div key={item.label} className="flex items-center justify-between gap-4 py-3">
-                <p className="text-sm font-black text-slate-700 dark:text-slate-200">
-                  {item.label}
-                </p>
-                <p className={`text-sm font-black ${item.tone}`}>{item.value}</p>
+          <div className="mt-6 divide-y divide-slate-100 border-t border-slate-100 dark:divide-slate-800 dark:border-slate-800">
+            {attention.map((item) => (
+              <div key={item.label} className="flex items-center justify-between gap-4 py-4">
+                <p className="font-black text-slate-800 dark:text-slate-200">{item.label}</p>
+                <p className={`font-black ${item.className}`}>{item.value}</p>
               </div>
             ))}
           </div>
         </article>
 
-        <article className="border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
-          <div className="mb-5 border-b border-slate-100 pb-4 dark:border-slate-800">
-            <h2 className="text-lg font-black tracking-tight text-slate-950 dark:text-white">
-              Owner access
-            </h2>
-            <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
-              Only the owner can open this system.
-            </p>
-          </div>
+        <article className="border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="text-xl font-black tracking-tight text-slate-950 dark:text-white">
+            Owner access
+          </h2>
+          <p className="mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
+            Only the owner can open this system.
+          </p>
 
-          <div className="space-y-3">
-            {['Owner can sign in', 'Dashboard is private', 'Owner can sign out', 'Works on phone screen'].map(
-              (item) => (
-                <div
-                  key={item}
-                  className="flex items-center justify-between gap-4 border border-slate-200 bg-slate-50 px-3 py-3 dark:border-slate-800 dark:bg-slate-950"
-                >
-                  <span className="text-sm font-black text-slate-700 dark:text-slate-200">
-                    {item}
-                  </span>
-                  <span className="text-xs font-black uppercase tracking-[0.12em] text-green-700 dark:text-green-300">
-                    OK
-                  </span>
-                </div>
-              ),
-            )}
+          <div className="mt-6 divide-y divide-slate-100 border-t border-slate-100 dark:divide-slate-800 dark:border-slate-800">
+            {checks.map((item) => (
+              <div
+                key={item.label}
+                className="flex items-center justify-between gap-4 border border-slate-100 bg-slate-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-950"
+              >
+                <p className="font-black text-slate-800 dark:text-slate-200">{item.label}</p>
+                <p className="text-sm font-black text-green-600 dark:text-green-300">
+                  {item.value}
+                </p>
+              </div>
+            ))}
           </div>
         </article>
       </section>
-    </>
+    </section>
   );
 }
