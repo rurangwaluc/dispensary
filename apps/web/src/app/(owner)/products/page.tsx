@@ -9,11 +9,38 @@ type ProductsPageProps = {
   searchParams?: Promise<{
     q?: string;
     type?: string;
+    take?: string;
   }>;
 };
 
+const PAGE_SIZE = 10;
+
 function money(value: string) {
   return `RWF ${Number(value).toLocaleString('en-US')}`;
+}
+
+function buildLoadMoreHref(q: string, selectedType: string, nextTake: number) {
+  const params = new URLSearchParams();
+
+  if (q) {
+    params.set('q', q);
+  }
+
+  if (selectedType) {
+    params.set('type', selectedType);
+  }
+
+  params.set('take', String(nextTake));
+
+  return `/products?${params.toString()}`;
+}
+
+function filterLink(type: string | null) {
+  if (!type) {
+    return '/products';
+  }
+
+  return `/products?type=${type}`;
 }
 
 function getStockLabel(quantity: number, minQuantity: number) {
@@ -46,7 +73,6 @@ function getExpiryLabel(expiryDate: string | null, warningDays: number) {
       text: 'No date',
       className:
         'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300',
-      isExpired: false,
       isSoon: false,
     };
   }
@@ -60,7 +86,6 @@ function getExpiryLabel(expiryDate: string | null, warningDays: number) {
       text: 'Expired',
       className:
         'border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200',
-      isExpired: true,
       isSoon: false,
     };
   }
@@ -70,7 +95,6 @@ function getExpiryLabel(expiryDate: string | null, warningDays: number) {
       text: 'Expiring soon',
       className:
         'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200',
-      isExpired: false,
       isSoon: true,
     };
   }
@@ -79,28 +103,22 @@ function getExpiryLabel(expiryDate: string | null, warningDays: number) {
     text: 'Good',
     className:
       'border-green-200 bg-green-50 text-green-700 dark:border-green-900/60 dark:bg-green-950/40 dark:text-green-200',
-    isExpired: false,
     isSoon: false,
   };
-}
-
-function filterLink(type: string | null) {
-  if (!type) {
-    return '/products';
-  }
-
-  return `/products?type=${type}`;
 }
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const params = await searchParams;
   const q = params?.q?.trim() || '';
   const selectedType = params?.type === 'PRODUCT' || params?.type === 'SERVICE' ? params.type : '';
+  const take = Math.max(PAGE_SIZE, Number(params?.take || PAGE_SIZE));
 
   const settings = await db.select().from(businessSettings).limit(1);
   const expiryWarningDays = Number(settings[0]?.expiryAlertDays || 60);
 
-  const activeItems = await db
+  const allActiveItems = await db.select().from(products).where(eq(products.status, 'ACTIVE'));
+
+  const filteredItems = await db
     .select()
     .from(products)
     .where(
@@ -119,7 +137,8 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     )
     .orderBy(desc(products.createdAt));
 
-  const allActiveItems = await db.select().from(products).where(eq(products.status, 'ACTIVE'));
+  const visibleItems = filteredItems.slice(0, take);
+  const hasMore = filteredItems.length > visibleItems.length;
 
   const productCount = allActiveItems.filter((item) => item.itemType === 'PRODUCT').length;
   const serviceCount = allActiveItems.filter((item) => item.itemType === 'SERVICE').length;
@@ -194,7 +213,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               className={
                 filter.active
                   ? 'inline-flex h-9 items-center justify-center rounded-lg border border-sky-300 bg-sky-50 px-4 text-xs font-black text-sky-800 dark:border-sky-500 dark:bg-sky-500 dark:text-white'
-                  : 'inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700'
+                  : 'inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-500 dark:hover:bg-slate-800 dark:hover:text-sky-200'
               }
             >
               {filter.label}
@@ -213,13 +232,13 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-sky-400 dark:focus:ring-sky-950"
             />
           </div>
-          <button className="h-11 rounded-lg border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900">
+          <button className="h-11 rounded-lg border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-500 dark:hover:bg-slate-800 dark:hover:text-sky-200">
             Search
           </button>
         </form>
       </div>
 
-      {activeItems.length === 0 ? (
+      {visibleItems.length === 0 ? (
         <section className="border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
           <div className="mx-auto max-w-xl text-center">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
@@ -254,7 +273,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {activeItems.map((item) => {
+                {visibleItems.map((item) => {
                   const stockLabel = getStockLabel(item.quantity, item.minQuantity);
                   const expiryLabel = getExpiryLabel(item.expiryDate, expiryWarningDays);
                   const isService = item.itemType === 'SERVICE';
@@ -315,7 +334,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                         <div className="flex justify-end gap-2">
                           <Link
                             href={`/products/${item.id}/edit`}
-                            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-500 dark:hover:bg-slate-800 dark:hover:text-sky-200"
                           >
                             <Edit className="h-3.5 w-3.5" />
                             Edit
@@ -331,7 +350,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
           </div>
 
           <div className="space-y-3 md:hidden">
-            {activeItems.map((item) => {
+            {visibleItems.map((item) => {
               const stockLabel = getStockLabel(item.quantity, item.minQuantity);
               const expiryLabel = getExpiryLabel(item.expiryDate, expiryWarningDays);
               const isService = item.itemType === 'SERVICE';
@@ -398,7 +417,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                   <div className="mt-4 grid grid-cols-2 gap-2">
                     <Link
                       href={`/products/${item.id}/edit`}
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+                      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-500 dark:hover:bg-slate-800 dark:hover:text-sky-200"
                     >
                       <Edit className="h-3.5 w-3.5" />
                       Edit
@@ -410,6 +429,21 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                 </article>
               );
             })}
+          </div>
+
+          <div className="flex flex-col items-center gap-2 border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
+              Showing {visibleItems.length} of {filteredItems.length}
+            </p>
+
+            {hasMore ? (
+              <Link
+                href={buildLoadMoreHref(q, selectedType, take + PAGE_SIZE)}
+                className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-500 dark:hover:bg-slate-800 dark:hover:text-sky-200"
+              >
+                Load more
+              </Link>
+            ) : null}
           </div>
         </>
       )}
