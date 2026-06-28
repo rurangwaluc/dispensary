@@ -35,13 +35,6 @@ function buildLoadMoreHref(q: string, selectedType: string, nextTake: number) {
   return `/products?${params.toString()}`;
 }
 
-function filterLink(type: string | null) {
-  if (!type) {
-    return '/products';
-  }
-
-  return `/products?type=${type}`;
-}
 
 function getStockLabel(quantity: number, minQuantity: number) {
   if (quantity <= 0) {

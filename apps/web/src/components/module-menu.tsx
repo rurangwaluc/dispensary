@@ -27,6 +27,11 @@ const moduleGroups = [
         href: '/dashboard',
         icon: LayoutDashboard,
       },
+      {
+        label: 'Money',
+        href: '/money',
+        icon: WalletCards,
+      },
     ],
   },
   {
