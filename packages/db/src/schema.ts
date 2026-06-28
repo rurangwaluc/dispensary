@@ -15,6 +15,7 @@ export const userRoleEnum = pgEnum('user_role', ['OWNER']);
 export const userStatusEnum = pgEnum('user_status', ['ACTIVE', 'DISABLED']);
 export const productStatusEnum = pgEnum('product_status', ['ACTIVE', 'ARCHIVED']);
 export const itemTypeEnum = pgEnum('item_type', ['PRODUCT', 'SERVICE']);
+export const paymentMethodEnum = pgEnum('payment_method', ['CASH', 'MOBILE_MONEY', 'BANK', 'CARD']);
 
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -69,6 +70,36 @@ export const products = pgTable('products', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const sales = pgTable('sales', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  customerName: varchar('customer_name', { length: 160 }),
+  customerPhone: varchar('customer_phone', { length: 40 }),
+  paymentMethod: paymentMethodEnum('payment_method').notNull().default('CASH'),
+  totalAmount: numeric('total_amount', { precision: 12, scale: 2 }).notNull().default('0'),
+  paidAmount: numeric('paid_amount', { precision: 12, scale: 2 }).notNull().default('0'),
+  balanceAmount: numeric('balance_amount', { precision: 12, scale: 2 }).notNull().default('0'),
+  notes: text('notes'),
+  saleDate: timestamp('sale_date', { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const saleItems = pgTable('sale_items', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  saleId: uuid('sale_id')
+    .notNull()
+    .references(() => sales.id, { onDelete: 'cascade' }),
+  productId: uuid('product_id')
+    .notNull()
+    .references(() => products.id, { onDelete: 'restrict' }),
+  itemName: varchar('item_name', { length: 180 }).notNull(),
+  itemType: itemTypeEnum('item_type').notNull(),
+  quantity: integer('quantity').notNull().default(1),
+  unitPrice: numeric('unit_price', { precision: 12, scale: 2 }).notNull().default('0'),
+  lineTotal: numeric('line_total', { precision: 12, scale: 2 }).notNull().default('0'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
 }));
@@ -77,6 +108,21 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, {
     fields: [sessions.userId],
     references: [users.id],
+  }),
+}));
+
+export const salesRelations = relations(sales, ({ many }) => ({
+  items: many(saleItems),
+}));
+
+export const saleItemsRelations = relations(saleItems, ({ one }) => ({
+  sale: one(sales, {
+    fields: [saleItems.saleId],
+    references: [sales.id],
+  }),
+  product: one(products, {
+    fields: [saleItems.productId],
+    references: [products.id],
   }),
 }));
 
@@ -91,3 +137,9 @@ export type NewBusinessSettings = typeof businessSettings.$inferInsert;
 
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
+
+export type Sale = typeof sales.$inferSelect;
+export type NewSale = typeof sales.$inferInsert;
+
+export type SaleItem = typeof saleItems.$inferSelect;
+export type NewSaleItem = typeof saleItems.$inferInsert;

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   BarChart3,
   Boxes,
@@ -16,7 +16,7 @@ import {
   Users,
   WalletCards,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 const moduleGroups = [
   {
@@ -91,9 +91,31 @@ const moduleGroups = [
   },
 ];
 
+const allRoutes = moduleGroups.flatMap((group) => group.items.map((item) => item.href));
+
 export function ModuleMenu() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    allRoutes.forEach((route) => {
+      router.prefetch(route);
+    });
+  }, [router]);
+
+  function goToPage(href: string) {
+    setIsOpen(false);
+
+    if (href === pathname) {
+      return;
+    }
+
+    startTransition(() => {
+      router.push(href);
+    });
+  }
 
   return (
     <div className="relative">
@@ -105,7 +127,7 @@ export function ModuleMenu() {
         aria-haspopup="menu"
       >
         <ClipboardList className="h-4 w-4" />
-        <span className="hidden sm:inline">Menu</span>
+        <span className="hidden sm:inline">{isPending ? 'Opening...' : 'Menu'}</span>
         <ChevronDown className="h-4 w-4" />
       </button>
 
@@ -114,7 +136,7 @@ export function ModuleMenu() {
           <button
             type="button"
             className="fixed inset-0 z-40 cursor-default bg-transparent"
-            aria-label="Close modules menu"
+            aria-label="Close menu"
             onClick={() => setIsOpen(false)}
           />
 
@@ -141,24 +163,32 @@ export function ModuleMenu() {
                       const isActive = pathname === item.href;
 
                       return (
-                        <Link
+                        <button
                           key={item.href}
-                          href={item.href}
-                          prefetch
-                          onClick={() => setIsOpen(false)}
+                          type="button"
+                          onClick={() => goToPage(item.href)}
+                          onMouseEnter={() => router.prefetch(item.href)}
                           className={
                             isActive
-                              ? 'flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-3 text-sm font-black text-sky-800 dark:border-sky-900/70 dark:bg-sky-950/40 dark:text-sky-200'
-                              : 'flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm font-black text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900'
+                              ? 'flex items-center gap-2 rounded-lg border border-sky-300 bg-sky-50 px-3 py-3 text-left text-sm font-black text-sky-800 dark:border-sky-500 dark:bg-sky-500 dark:text-white'
+                              : 'flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-3 text-left text-sm font-black text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900'
                           }
                         >
                           <Icon className="h-4 w-4 shrink-0" />
                           <span className="truncate">{item.label}</span>
-                        </Link>
+                        </button>
                       );
                     })}
                   </div>
                 </div>
+              ))}
+            </div>
+
+            <div className="sr-only">
+              {allRoutes.map((route) => (
+                <Link key={route} href={route} prefetch>
+                  {route}
+                </Link>
               ))}
             </div>
           </div>
