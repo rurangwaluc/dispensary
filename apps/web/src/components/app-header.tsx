@@ -35,6 +35,10 @@ function getPageName(pathname: string) {
     return { eyebrow: 'Sales', title: 'Sales' };
   }
 
+  if (pathname === '/stock/receive') {
+    return { eyebrow: 'Stock', title: 'Add stock' };
+  }
+
   if (pathname === '/stock') {
     return { eyebrow: 'Stock', title: 'Stock' };
   }

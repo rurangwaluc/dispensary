@@ -3,3 +3,4 @@ export * from './settings.ts';
 export * from './product.ts';
 export * from './sale.ts';
 export * from './debt.ts';
+export * from './stock.ts';

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { and, desc, eq, ilike, or } from 'drizzle-orm';
 import { Edit, Search } from 'lucide-react';
 import { db } from '@dispensary/db/client';
-import { businessSettings, products } from '@dispensary/db/schema';
+import { businessSettings, products, stockArrivals } from '@dispensary/db/schema';
 
 type StockPageProps = {
   searchParams?: Promise<{
@@ -120,6 +120,12 @@ export default async function StockPage({ searchParams }: StockPageProps) {
   const settings = await db.select().from(businessSettings).limit(1);
   const expiryWarningDays = Number(settings[0]?.expiryAlertDays || 60);
 
+  const arrivalList = await db
+    .select()
+    .from(stockArrivals)
+    .orderBy(desc(stockArrivals.arrivedAt))
+    .limit(5);
+
   const productList = await db
     .select()
     .from(products)
@@ -210,12 +216,20 @@ export default async function StockPage({ searchParams }: StockPageProps) {
             </p>
           </div>
 
-          <Link
-            href="/products/new"
-            className="inline-flex h-11 items-center justify-center rounded-lg bg-sky-500 px-5 text-sm font-black text-white shadow-sm transition hover:bg-sky-600"
-          >
-            Add product
-          </Link>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Link
+              href="/stock/receive"
+              className="inline-flex h-11 items-center justify-center rounded-lg bg-sky-500 px-5 text-sm font-black text-white shadow-sm transition hover:bg-sky-600"
+            >
+              Add stock
+            </Link>
+            <Link
+              href="/products/new"
+              className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-500 dark:hover:bg-slate-800 dark:hover:text-sky-200"
+            >
+              Add product
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -440,6 +454,46 @@ export default async function StockPage({ searchParams }: StockPageProps) {
           </div>
         </>
       )}
+
+      <section className="border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-lg font-black text-slate-950 dark:text-white">Recent stock added</h3>
+            <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
+              Latest products added to stock.
+            </p>
+          </div>
+
+          <Link
+            href="/stock/receive"
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-500 dark:hover:bg-slate-800 dark:hover:text-sky-200"
+          >
+            Add stock
+          </Link>
+        </div>
+
+        {arrivalList.length === 0 ? (
+          <p className="mt-4 text-sm font-semibold text-slate-500 dark:text-slate-400">
+            No stock added yet.
+          </p>
+        ) : (
+          <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
+            {arrivalList.map((arrival) => (
+              <div key={arrival.id} className="grid gap-2 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                <div>
+                  <p className="font-black text-slate-900 dark:text-white">{arrival.productName}</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    {arrival.quantityReceived} added · {arrival.supplierName || 'No supplier'} · {arrival.arrivedAt.toLocaleDateString()}
+                  </p>
+                </div>
+                <p className="font-black text-slate-900 dark:text-white">
+                  {money(Number(arrival.buyingPrice) * arrival.quantityReceived)}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {expired > 0 ? (
         <p className="text-xs font-bold text-red-600 dark:text-red-300">

@@ -124,6 +124,23 @@ export const debtPayments = pgTable('debt_payments', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const stockArrivals = pgTable('stock_arrivals', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  productId: uuid('product_id')
+    .notNull()
+    .references(() => products.id, { onDelete: 'restrict' }),
+  productName: varchar('product_name', { length: 180 }).notNull(),
+  quantityReceived: integer('quantity_received').notNull(),
+  buyingPrice: numeric('buying_price', { precision: 12, scale: 2 }).notNull().default('0'),
+  supplierName: varchar('supplier_name', { length: 160 }),
+  batchNumber: varchar('batch_number', { length: 80 }),
+  expiryDate: date('expiry_date'),
+  reference: varchar('reference', { length: 120 }),
+  notes: text('notes'),
+  arrivedAt: timestamp('arrived_at', { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
 }));
@@ -137,6 +154,11 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
 
 export const customersRelations = relations(customers, ({ many }) => ({
   sales: many(sales),
+}));
+
+export const productsRelations = relations(products, ({ many }) => ({
+  saleItems: many(saleItems),
+  stockArrivals: many(stockArrivals),
 }));
 
 export const salesRelations = relations(sales, ({ one, many }) => ({
@@ -166,6 +188,13 @@ export const debtPaymentsRelations = relations(debtPayments, ({ one }) => ({
   }),
 }));
 
+export const stockArrivalsRelations = relations(stockArrivals, ({ one }) => ({
+  product: one(products, {
+    fields: [stockArrivals.productId],
+    references: [products.id],
+  }),
+}));
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
@@ -189,3 +218,6 @@ export type NewSaleItem = typeof saleItems.$inferInsert;
 
 export type DebtPayment = typeof debtPayments.$inferSelect;
 export type NewDebtPayment = typeof debtPayments.$inferInsert;
+
+export type StockArrival = typeof stockArrivals.$inferSelect;
+export type NewStockArrival = typeof stockArrivals.$inferInsert;
