@@ -6,7 +6,7 @@ import { db } from '@dispensary/db/client';
 import { moneyAdditions, moneyTransfers } from '@dispensary/db/schema';
 import { addMoneySchema, moneyTransferSchema } from '@dispensary/validators/money';
 import { requireOwner } from '@/lib/auth/session';
-import { getPaymentMethodBalance, paymentName } from './balance';
+import { getPaymentMethodBalance } from './balance';
 
 function cleanOptional(value: string | undefined) {
   const cleaned = value?.trim();
