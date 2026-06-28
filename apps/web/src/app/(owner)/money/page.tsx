@@ -45,8 +45,6 @@ export default async function MoneyPage({ searchParams }: MoneyPageProps) {
   const totalMoney = balances.reduce((sum, item) => sum + item.balance, 0);
   const totalIn = balances.reduce((sum, item) => sum + item.moneyIn, 0);
   const totalOut = balances.reduce((sum, item) => sum + item.moneyOut, 0);
-  const hasNegative = balances.some((item) => item.balance < 0);
-
   return (
     <section className="space-y-4">
       <div className="border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
@@ -57,13 +55,6 @@ export default async function MoneyPage({ searchParams }: MoneyPageProps) {
           See what came in, what went out, and what is left.
         </p>
       </div>
-
-      {hasNegative ? (
-        <div className="border border-yellow-200 bg-yellow-50 p-4 text-sm font-bold text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
-          Some money places are below zero because old expenses were recorded before starting money was added.
-          Add starting money to correct them.
-        </div>
-      ) : null}
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {balances.map((item) => (
@@ -192,25 +183,18 @@ export default async function MoneyPage({ searchParams }: MoneyPageProps) {
         >
           <h3 className="text-lg font-black text-slate-950 dark:text-white">Move money</h3>
           <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
-            Example: move cash to bank.
+            Move cash to mobile money or bank.
           </p>
 
           <div className="mt-4 space-y-4">
             <div className="space-y-2">
-              <label htmlFor="fromPaymentMethod" className="text-sm font-black text-slate-800 dark:text-slate-200">
+              <label className="text-sm font-black text-slate-800 dark:text-slate-200">
                 From
               </label>
-              <select
-                id="fromPaymentMethod"
-                name="fromPaymentMethod"
-                className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-black text-slate-950 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus:border-sky-400 dark:focus:ring-sky-950"
-              >
-                {paymentMethods.map((method) => (
-                  <option key={method} value={method}>
-                    {paymentName(method)}
-                  </option>
-                ))}
-              </select>
+              <input type="hidden" name="fromPaymentMethod" value="CASH" />
+              <div className="flex h-11 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-black text-slate-950 dark:border-slate-800 dark:bg-slate-950 dark:text-white">
+                Cash
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -223,11 +207,8 @@ export default async function MoneyPage({ searchParams }: MoneyPageProps) {
                 defaultValue="BANK"
                 className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-black text-slate-950 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus:border-sky-400 dark:focus:ring-sky-950"
               >
-                {paymentMethods.map((method) => (
-                  <option key={method} value={method}>
-                    {paymentName(method)}
-                  </option>
-                ))}
+                <option value="MOBILE_MONEY">Mobile money</option>
+                <option value="BANK">Bank</option>
               </select>
             </div>
 

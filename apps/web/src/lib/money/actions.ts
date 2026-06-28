@@ -60,12 +60,16 @@ export async function moveMoneyAction(formData: FormData) {
     redirect(`/money?error=${encodeURIComponent(message)}`);
   }
 
-  if (parsed.data.fromPaymentMethod === parsed.data.toPaymentMethod) {
-    redirect('/money?error=Choose two different places for the money.');
+  if (parsed.data.fromPaymentMethod !== 'CASH') {
+    redirect('/money?error=Money can only be moved from cash.');
+  }
+
+  if (!['MOBILE_MONEY', 'BANK'].includes(parsed.data.toPaymentMethod)) {
+    redirect('/money?error=Move cash only to mobile money or bank.');
   }
 
   const amount = Number(parsed.data.amount);
-  const availableMoney = await getPaymentMethodBalance(parsed.data.fromPaymentMethod);
+  const availableMoney = await getPaymentMethodBalance('CASH');
 
   if (amount <= 0) {
     redirect('/money?error=Amount must be above zero.');
@@ -74,15 +78,13 @@ export async function moveMoneyAction(formData: FormData) {
   if (amount > availableMoney) {
     redirect(
       `/money?error=${encodeURIComponent(
-        `Not enough money in ${paymentName(parsed.data.fromPaymentMethod)}. ${paymentName(
-          parsed.data.fromPaymentMethod,
-        )} has RWF ${availableMoney.toLocaleString('en-US')}.`,
+        `Not enough cash. Cash has RWF ${availableMoney.toLocaleString('en-US')}.`,
       )}`,
     );
   }
 
   await db.insert(moneyTransfers).values({
-    fromPaymentMethod: parsed.data.fromPaymentMethod,
+    fromPaymentMethod: 'CASH',
     toPaymentMethod: parsed.data.toPaymentMethod,
     amount: parsed.data.amount,
     notes: cleanOptional(parsed.data.notes),
