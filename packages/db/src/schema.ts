@@ -141,6 +141,18 @@ export const stockArrivals = pgTable('stock_arrivals', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const expenses = pgTable('expenses', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 180 }).notNull(),
+  category: varchar('category', { length: 120 }).notNull().default('Other'),
+  amount: numeric('amount', { precision: 12, scale: 2 }).notNull().default('0'),
+  paymentMethod: paymentMethodEnum('payment_method').notNull().default('CASH'),
+  expenseDate: timestamp('expense_date', { withTimezone: true }).defaultNow().notNull(),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
 }));
@@ -221,3 +233,6 @@ export type NewDebtPayment = typeof debtPayments.$inferInsert;
 
 export type StockArrival = typeof stockArrivals.$inferSelect;
 export type NewStockArrival = typeof stockArrivals.$inferInsert;
+
+export type Expense = typeof expenses.$inferSelect;
+export type NewExpense = typeof expenses.$inferInsert;

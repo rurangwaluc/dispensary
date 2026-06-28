@@ -1,6 +1,6 @@
 import { CreditCard, Layers3, TrendingUp, WalletCards } from 'lucide-react';
 import { db } from '@dispensary/db/client';
-import { businessSettings, products, sales } from '@dispensary/db/schema';
+import { businessSettings, expenses, products, sales } from '@dispensary/db/schema';
 
 function money(value: string | number) {
   return `RWF ${Number(value).toLocaleString('en-US')}`;
@@ -32,6 +32,7 @@ export default async function DashboardPage() {
   const [settings] = await db.select().from(businessSettings).limit(1);
   const saleList = await db.select().from(sales);
   const productList = await db.select().from(products);
+  const expenseList = await db.select().from(expenses);
 
   const expiryWarningDays = Number(settings?.expiryAlertDays || 60);
 
@@ -65,6 +66,9 @@ export default async function DashboardPage() {
   );
 
   const unpaidCustomers = saleList.filter((sale) => Number(sale.balanceAmount) > 0);
+  const todayExpenses = expenseList
+    .filter((expense) => isToday(expense.expenseDate))
+    .reduce((sum, expense) => sum + Number(expense.amount), 0);
 
   const cards = [
     {
@@ -111,8 +115,8 @@ export default async function DashboardPage() {
     },
     {
       label: 'Today expenses',
-      value: money(0),
-      className: 'text-slate-300',
+      value: money(todayExpenses),
+      className: 'text-red-300',
     },
   ];
 
