@@ -74,7 +74,9 @@ export async function moveMoneyAction(formData: FormData) {
   if (amount > availableMoney) {
     redirect(
       `/money?error=${encodeURIComponent(
-        `Not enough money in ${paymentName(parsed.data.fromPaymentMethod)}.`,
+        `Not enough money in ${paymentName(parsed.data.fromPaymentMethod)}. ${paymentName(
+          parsed.data.fromPaymentMethod,
+        )} has RWF ${availableMoney.toLocaleString('en-US')}.`,
       )}`,
     );
   }

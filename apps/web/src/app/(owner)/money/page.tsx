@@ -45,6 +45,7 @@ export default async function MoneyPage({ searchParams }: MoneyPageProps) {
   const totalMoney = balances.reduce((sum, item) => sum + item.balance, 0);
   const totalIn = balances.reduce((sum, item) => sum + item.moneyIn, 0);
   const totalOut = balances.reduce((sum, item) => sum + item.moneyOut, 0);
+  const hasNegative = balances.some((item) => item.balance < 0);
 
   return (
     <section className="space-y-4">
@@ -56,6 +57,13 @@ export default async function MoneyPage({ searchParams }: MoneyPageProps) {
           See what came in, what went out, and what is left.
         </p>
       </div>
+
+      {hasNegative ? (
+        <div className="border border-yellow-200 bg-yellow-50 p-4 text-sm font-bold text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200">
+          Some money places are below zero because old expenses were recorded before starting money was added.
+          Add starting money to correct them.
+        </div>
+      ) : null}
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {balances.map((item) => (
