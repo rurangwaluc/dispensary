@@ -32,7 +32,7 @@ function getFormValues(formData: FormData) {
     batchNumber: undefined,
     supplierName: itemType === 'SERVICE' ? undefined : formData.get('supplierName') || undefined,
     buyingPrice: itemType === 'SERVICE' ? '0' : formData.get('buyingPrice'),
-    sellingPrice: formData.get('sellingPrice'),
+    sellingPrice: formData.get('sellingPrice') || undefined,
     quantity: itemType === 'SERVICE' ? '0' : formData.get('quantity'),
     minQuantity: itemType === 'SERVICE' ? '0' : formData.get('minQuantity'),
     expiryDate: itemType === 'SERVICE' ? undefined : formData.get('expiryDate') || undefined,
@@ -62,7 +62,10 @@ export async function createProductAction(
     batchNumber: null,
     supplierName: cleanOptional(parsed.data.supplierName),
     buyingPrice: parsed.data.buyingPrice,
-    sellingPrice: parsed.data.sellingPrice,
+    sellingPrice:
+      parsed.data.itemType === 'SERVICE'
+        ? parsed.data.sellingPrice || '0'
+        : parsed.data.sellingPrice || '0',
     quantity: Number(parsed.data.quantity),
     minQuantity: Number(parsed.data.minQuantity),
     expiryDate: cleanOptional(parsed.data.expiryDate),
@@ -102,7 +105,10 @@ export async function updateProductAction(
       batchNumber: null,
       supplierName: cleanOptional(parsed.data.supplierName),
       buyingPrice: parsed.data.buyingPrice,
-      sellingPrice: parsed.data.sellingPrice,
+      sellingPrice:
+        parsed.data.itemType === 'SERVICE'
+          ? parsed.data.sellingPrice || '0'
+          : parsed.data.sellingPrice || '0',
       quantity: Number(parsed.data.quantity),
       minQuantity: Number(parsed.data.minQuantity),
       expiryDate: cleanOptional(parsed.data.expiryDate),

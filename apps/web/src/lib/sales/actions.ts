@@ -75,45 +75,51 @@ export async function createSaleAction(
     };
   }
 
-  const lines = parsed.data.items.map((line) => {
-    const item = sellableItems.find((current) => current.id === line.productId);
-
-    if (!item || item.status !== 'ACTIVE') {
-      throw new Error('One item is not available.');
-    }
-
-    if (item.itemType === 'PRODUCT' && item.quantity < line.quantity) {
-      throw new Error(`${item.name} does not have enough stock.`);
-    }
-
-    const unitPrice = Number(item.sellingPrice);
-    const lineTotal = unitPrice * line.quantity;
-
-    return {
-      item,
-      quantity: line.quantity,
-      unitPrice,
-      lineTotal,
-    };
-  });
-
-  const totalAmount = lines.reduce((sum, line) => sum + line.lineTotal, 0);
-  const paidAmount = Number(parsed.data.paidAmount);
-  const balanceAmount = totalAmount - paidAmount;
-
-  if (paidAmount < 0) {
-    return {
-      error: 'Paid amount cannot be below zero.',
-    };
-  }
-
-  if (paidAmount > totalAmount) {
-    return {
-      error: 'Paid amount cannot be higher than the total.',
-    };
-  }
-
   try {
+    const lines = parsed.data.items.map((line) => {
+      const item = sellableItems.find((current) => current.id === line.productId);
+
+      if (!item || item.status !== 'ACTIVE') {
+        throw new Error('One item is not available.');
+      }
+
+      if (item.itemType === 'PRODUCT' && item.quantity < line.quantity) {
+        throw new Error(`${item.name} does not have enough stock.`);
+      }
+
+      const unitPrice =
+        item.itemType === 'SERVICE' ? Number(line.unitPrice || 0) : Number(item.sellingPrice);
+
+      if (item.itemType === 'SERVICE' && unitPrice <= 0) {
+        throw new Error(`Enter the price for ${item.name}.`);
+      }
+
+      const lineTotal = unitPrice * line.quantity;
+
+      return {
+        item,
+        quantity: line.quantity,
+        unitPrice,
+        lineTotal,
+      };
+    });
+
+    const totalAmount = lines.reduce((sum, line) => sum + line.lineTotal, 0);
+    const paidAmount = Number(parsed.data.paidAmount);
+    const balanceAmount = totalAmount - paidAmount;
+
+    if (paidAmount < 0) {
+      return {
+        error: 'Paid amount cannot be below zero.',
+      };
+    }
+
+    if (paidAmount > totalAmount) {
+      return {
+        error: 'Paid amount cannot be higher than the total.',
+      };
+    }
+
     await db.transaction(async (tx) => {
       let customerId: string | null = null;
       let customerName: string | null = null;
@@ -200,7 +206,10 @@ export async function createSaleAction(
   revalidatePath('/sales');
   revalidatePath('/customers');
   revalidatePath('/products');
+  revalidatePath('/services');
+  revalidatePath('/stock');
   revalidatePath('/dashboard');
+  revalidatePath('/reports');
 
   redirect('/sales');
 }

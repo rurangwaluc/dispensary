@@ -5,9 +5,16 @@ const moneySchema = z
   .trim()
   .regex(/^[0-9]+(\.[0-9]{1,2})?$/, 'Enter a valid amount.');
 
+const optionalMoneySchema = z
+  .string()
+  .trim()
+  .optional()
+  .refine((value) => !value || /^[0-9]+(\.[0-9]{1,2})?$/.test(value), 'Enter a valid amount.');
+
 export const saleLineItemSchema = z.object({
   productId: z.string().uuid('Choose an item.'),
   quantity: z.number().int().min(1),
+  unitPrice: optionalMoneySchema,
 });
 
 export const saleFormSchema = z.object({

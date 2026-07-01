@@ -39,6 +39,10 @@ export function ProductForm({
 
   const isService = itemType === 'SERVICE';
   const safeBackHref = backHref || (isService ? '/services' : '/products');
+  const servicePrice =
+    isService && product?.sellingPrice && Number(product.sellingPrice) > 0
+      ? product.sellingPrice
+      : '';
 
   return (
     <form action={formAction} className="space-y-5">
@@ -117,16 +121,22 @@ export function ProductForm({
 
         <div className="space-y-2">
           <label htmlFor="sellingPrice" className="text-sm font-black text-slate-800 dark:text-slate-200">
-            {isService ? 'Service price' : 'Selling price'}
+            {isService ? 'Usual service price' : 'Selling price'}
           </label>
           <input
             id="sellingPrice"
             name="sellingPrice"
             inputMode="decimal"
-            defaultValue={product?.sellingPrice || '0'}
-            required
+            defaultValue={isService ? servicePrice : product?.sellingPrice || ''}
+            placeholder={isService ? 'Optional. Can be entered during sale.' : 'Example: 100'}
+            required={!isService}
             className={inputClass}
           />
+          {isService ? (
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
+              Leave empty when the service price changes from sale to sale.
+            </p>
+          ) : null}
         </div>
 
         {!isService ? (
